@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <style>
+      .hehe {
+        width: 90vw;
+        height: 90vh;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea class="hehe" readonly>
+        #Action tính tổng thành tiền cao nhất
+
+        public ActionResult tongdoanhthu()
+        {
+            var bookRevenues = db.hoadonbans
+                           .GroupBy(h => h.masach)
+                           .Select(group => new
+                           {
+                               MaSach = group.Key,
+                               TotalRevenue = group.Sum(h => h.soluong * h.sach.dongia)
+                           })
+                           .ToList();
+            if (!bookRevenues.Any())
+            {
+                ViewBag.Message = "Không có dữ liệu hóa đơn.";
+                return View();
+            }
+            var maxRevenue = bookRevenues.Max(b => b.TotalRevenue);
+            var topSellingBooks = bookRevenues
+                                  .Where(b => b.TotalRevenue == maxRevenue)
+                                  .ToList();
+            var topSellingBookIds = topSellingBooks.Select(b => b.MaSach).ToList();
+            var books = db.saches
+                          .Where(s => topSellingBookIds.Contains(s.masach))
+                          .ToList();
+            ViewBag.TopSellingBooks = books;
+            ViewBag.MaxRevenue = maxRevenue;
+            return View();
+        }
+
+        #view tỉnh tổng doanh thu cao nhất
+            @{
+                var books = ViewBag.TopSellingBooks as List<NguyenTrungHieu3Table.Models.sach>;
+                var maxRevenue = ViewBag.MaxRevenue ?? 0;
+            }
+            <style>
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                    font-size: 18px;
+                    text-align: left;
+                }
+            
+                    table th, table td {
+                        border: 1px solid #dddddd;
+                        padding: 8px 12px;
+                    }
+            
+                    table th {
+                        background-color: #f4f4f4;
+                        font-weight: bold;
+                    }
+            
+                h2 {
+                    font-size: 24px;
+                    margin-bottom: 15px;
+                    color: #333;
+                    text-align: center;
+                }
+            </style>
+            
+            
+            <h2>Danh sách sách có tổng doanh thu cao nhất</h2>
+            
+            @if (books != null && books.Any())
+            {
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã sách</th>
+                            <th>Tên sách</th>
+                            <th>Thể loại</th>
+                            <th>Đơn giá</th>
+                            <th>Tổng doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var book in books)
+                        {
+                            <tr>
+                                <td>@book.masach</td>
+                                <td>@book.tensach_</td>
+                                <td>@book.theloai</td>
+                                <td>@book.dongia</td>
+                                <td>@maxRevenue</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p>Không có sách nào được bán.</p>
+            }
+        
+
+            #tính thành tiền  
+            public decimal TongTien
+            {
+                get{
+                    return soluong * Sach?.dongia ?? 0; 
+                }
+            }
+
+            #tìm kiếm dropList
+            @{ Html.BeginForm();}
+            @Html.Label("Nhập tên nhân viên")
+            @Html.DropDownList("name" ,new SelectList(Model.Select(item => new {value = item.Nhanvien.hoten , Text = item.Nhanvien.hoten}) , "value" , "Text"), "mời bạn chọn tên")
+            <input type="submit" value="Tìm Kiếm" />
+            @{ Html.EndForm();}
+
+            # dropList For
+            @Html.DropDownListFor(model => model.theloai, new SelectList(new[]
+            {
+             new {value = "Lập trình" , Text = "Lập trình"},
+             new {value = "Khoa học" , Text = "Khóa học"},
+             new {value = "Văn học" , Text = "Văn học"},
+            }, "value", "Text"), " Mời bạn chọn thể loại")
+
+            #radio 
+            @Html.RadioButtonFor(model => model.theloai, "Nam") Nam
+
+            #lớn nhất và nhỏ nhất
+            public ActionResult bannhieu()
+            {
+                var max = db.HoaDonBanSaches.Max(d => d.soluong);
+                var ds = db.HoaDonBanSaches.Where(d => d.soluong == max).Select(d => d);
+                return View(ds.ToList());
+            }
+
+            #max thành tiền
+            public ActionResult maxthanhtien()
+            {var hoaDonList = db.HoaDonBanSaches.Include(h => h.Sach).ToList();
+                var max = hoaDonList.Max(h => h.TongTien);
+                var ds = hoaDonList.Where(h => h.TongTien == max).ToList();
+                return View(ds);
+            }
+
+            #tìm kiếm
+            public ActionResult Index(string name)
+            {
+                var chamcongs = db.Chamcongs.Include(c => c.Nhanvien);
+                if (!string.IsNullOrWhiteSpace(name))
+                
+                    name = name.Trim().ToLower();
+                    chamcongs = chamcongs.Where(d => d.Nhanvien.hoten.Trim().ToLower().Contains(name));
+                }
+                return View(chamcongs.ToList());
+            }
+
+            # sắp xếp giảm dần theo số lượng 
+            public ActionResult giamdantheosoluong(string name)
+            {
+                var hoadonbans = db.hoadonbans.Include(h => h.sach).Include(h => h.khachhang);
+                hoadonbans = hoadonbans.OrderBy(d => d.soluong);
+                return View(hoadonbans.ToList());
+            }
+
+
+           
+        
+    </textarea>
+  </body>
+</html>
